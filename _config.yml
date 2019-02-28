@@ -1,1 +1,15 @@
+# template: https://github.com/barryclark/jekyll-now/blob/master/_config.yml
+
+name: Felice Serena
+
+description: CS Student testing github pages
+
+avatar: https://avatars2.githubusercontent.com/u/9076628?s=460&v=4
+
+url: https://fluci.github.io/
+
 theme: jekyll-theme-slate
+
+gems:
+  - jekyll-sitemap # Create a sitemap using the official Jekyll sitemap gem
+  - jekyll-feed # Create an Atom feed using the official Jekyll feed gem
