@@ -1,0 +1,209 @@
+<canvas id="point-cloud-distance-canvas" style="border: 1px solid black;"></canvas>
+<div id="point-cloud-distance-metrics"></div>
+
+<script src="/libs/createjs.1.0.0.min.js"></script>
+
+<script type="text/javascript">
+    class Observable {
+        constructor(){
+            this.observers = [];
+        }
+        addObserver(ob) {
+            this.observers.push(ob);
+        }
+        sendEvent(evt) {
+            for(var observer of this.observers){
+                observer.handleEvent(evt);
+            }
+        }
+    }
+    class CloudController {
+        constructor(stage, cloud, radius, color) {
+            this.stage = stage;
+            this.cloud = cloud;
+            this.radius = radius;
+            this.color = color;
+            this.points = []
+            this.observe = new Observable();
+            for(var pi in this.cloud){
+                var point = this.createPoint(pi);
+                this.points.push(point);
+            }
+            
+        }
+        drag(evt) {
+            evt.target.x = evt.stageX;
+            evt.target.y = evt.stageY;
+            this.cloud[evt.target.pi][0] = evt.stageX;
+            this.cloud[evt.target.pi][1] = evt.stageY;
+            this.observe.sendEvent({cloud: this, point: evt.target.pi});
+        }
+        createPoint(pi){
+            var x = this.cloud[pi][0];
+            var y = this.cloud[pi][1];
+            var circle = new createjs.Shape();
+            circle.graphics.beginFill(this.color).drawCircle(0, 0, this.radius);
+            circle.x = x;
+            circle.y = y;
+            circle.name = "circle";
+            circle.pi = pi;
+            circle.on("pressmove", evt => this.drag(evt));
+            this.stage.addChild(circle);
+            return circle;
+        }
+    }
+    function findNearestNeighbors(cloud1, cloud2) {
+        // naive, quadratic implementation of nearest neighbor
+        // return for every point in 1 its nearest neighbor in 2
+        var nn = []
+        for(var pi in cloud1){
+            var p1 = cloud1[pi];
+            var minJ = findNearestNeighbor(p1, cloud2);
+            nn.push(minJ);
+        }
+        return nn;
+    }
+    function dist2(p1, p2){
+        var diff = [p1[0] - p2[0], p1[1] - p2[1]];
+        var d2 = diff[0] * diff[0] + diff[1] * diff[1];
+        return d2;
+    }
+    function findNearestNeighbor(p1, cloud){
+        var minD2 = Infinity;
+        var minJ = -1;
+        for(var pj in cloud){
+            var p2 = cloud[pj];
+            var d2 = dist2(p1, p2);
+            if(d2 < minD2){
+                minD2 = d2;
+                minJ = pj;
+            }
+        }
+        return minJ;
+    }
+    function computeDN(cloud1, cloud2, nn){
+        // computes the squared distance for each point in cloud1 to its nearest neighbor in cloud2, averages the result
+        var dsum = 0.0;
+        for(pi in cloud1){
+            var p1 = cloud1[pi];
+            var p2 = cloud2[nn[pi]];
+            var d2 = dist2(p1, p2);
+           
+            dsum += Math.sqrt(d2);
+        }
+        return dsum / cloud1.length;
+    }
+    class Controller {
+        constructor(stage, metrics, cloud1, cloud2) {
+            this.stage = stage;
+            this.metrics = metrics;
+            this.cloud1 = cloud1;
+            this.cloud2 = cloud2;
+            this.cloud1.observe.addObserver(this);
+            this.cloud2.observe.addObserver(this);
+            this.nn1 = findNearestNeighbors(this.cloud1.cloud, this.cloud2.cloud);
+            this.nn2 = findNearestNeighbors(this.cloud2.cloud, this.cloud1.cloud);
+            this.nnedges1 = new createjs.Shape();
+            this.nnedges2 = new createjs.Shape();
+            this.update();
+            this.stage.addChild(this.nnedges1);
+            this.stage.addChild(this.nnedges2);
+        }
+        handleEvent(evt) {
+            // update nearest neighbors
+            this.nn1 = findNearestNeighbors(this.cloud1.cloud, this.cloud2.cloud);
+            this.nn2 = findNearestNeighbors(this.cloud2.cloud, this.cloud1.cloud);
+            this.update();
+            this.stage.update();
+        }
+        drag(evt) {
+            evt.target.x = evt.stageX;
+            evt.target.y = evt.stageY;
+        }
+        update(){
+            var o = 2.0;
+            this.drawNNEdges(
+                this.cloud1.cloud, 
+                this.cloud2.cloud, 
+                this.nn1, 
+                this.nnedges1.graphics,
+                this.cloud1.color,
+                [o, o]
+            );
+            this.drawNNEdges(
+                this.cloud2.cloud, 
+                this.cloud1.cloud, 
+                this.nn2, 
+                this.nnedges2.graphics,
+                this.cloud2.color,
+                [-o, -o]
+            );
+            var d1 = computeDN(this.cloud1.cloud, this.cloud2.cloud, this.nn1);
+            var d2 = computeDN(this.cloud2.cloud, this.cloud1.cloud, this.nn2);
+
+            metrics = "";
+            metrics += "<span style=\"color: " + this.cloud1.color + "\">";
+            metrics += "Cloud 1 d^n: " + d1;
+            metrics += "</span>";
+            metrics += "<br/>"
+            metrics += "<span style=\"color: " + this.cloud2.color + "\">";
+            metrics += "Cloud 2 d^n: " + d2;
+            metrics += "</span>";
+            this.metrics.innerHTML = metrics;
+        }
+        drawNNEdges(cloud1, cloud2, nn, nnedges, color, offset) {
+            /// nn[i] = j; draws edge(cloud1[i], cloud2[j])
+            if(offset == null){
+                offset = [0, 0];
+            }
+        
+            nnedges.clear();
+            nnedges.setStrokeStyle(1);
+            nnedges.beginStroke(color);
+            for(var pi in cloud1){
+                var pj = nn[pi];
+                var p1 = cloud1[pi];
+                var p2 = cloud2[pj];
+                nnedges.moveTo(p1[0] + offset[0], p1[1] + offset[1]);
+                nnedges.lineTo(p2[0] + offset[0], p2[1] + offset[1]);
+            }
+        }
+
+    }
+
+    function randomCloud(pc, width, height, R) {
+        var points = [];
+        for(var i = 0; i < pc; ++i){
+            var x = Math.random() * (width - 8 * R) + 4 * R;
+            var y = Math.random() * (height - 8 * R) + 4 * R;
+            var p = [x, y];
+            points.push(p);
+        }
+        return points;
+    }
+
+    var can = document.getElementById("point-cloud-distance-canvas");
+    var metrics = document.getElementById("point-cloud-distance-metrics");
+    can.width = can.parentElement.clientWidth;
+    can.height = can.parentElement.clientWidth / 3 * 2;
+    var R = 15;
+    var pc = 8;
+    var points1 = randomCloud(pc, can.width, can.height, R);
+    var points2 = [];
+
+    // add random shift
+    for(pi in points1) {
+        var x = 4 * R * (Math.random() - 0.5) + points1[pi][0];
+        var y = 4 * R * (Math.random() - 0.5) + points1[pi][1];
+        var p = [x, y];
+        points2.push(p);
+    }
+
+    var stage = new createjs.Stage(can);
+    var color1 = "#0000AA";
+    var color2 = "#00BB00";
+    var cloud1 = new CloudController(stage, points1, R, color1);
+    var cloud2 = new CloudController(stage, points2, R, color2);
+    var ctrl = new Controller(stage, metrics, cloud1, cloud2);
+    stage.update();
+</script>
