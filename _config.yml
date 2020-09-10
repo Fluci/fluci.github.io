@@ -13,3 +13,8 @@ theme: jekyll-theme-slate
 gems:
   - jekyll-sitemap # Create a sitemap using the official Jekyll sitemap gem
   - jekyll-feed # Create an Atom feed using the official Jekyll feed gem
+
+markdown: kramdown
+kramdown:
+   math_engine: mathjax
+
