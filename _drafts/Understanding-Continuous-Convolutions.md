@@ -319,7 +319,7 @@ I think at this point, I let the author's video speak for itself:
 
 ## Conclusion
 
-In general, the paper is well written and presents the method cleary.
+In general, the paper is well written and presents the method clearly.
 I do miss a bit a "cover" picture that encapsulates the paper's achievement in one image, though the architecture overview comes close to it. 
 Knowing that authors are always under pressure to meet the deadline, I would have loved to see some more qualitative results of other methods, especially as some methods achieved better scores than DPI-Nets (Table 1).
 At points, it feels like the continuous convolution deserves its own paper, diving deeper into its advantages and limitations as it incorporates such a fundamental operation.
