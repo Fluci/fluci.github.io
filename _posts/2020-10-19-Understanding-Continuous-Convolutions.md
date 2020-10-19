@@ -230,12 +230,15 @@ The first level converts the different feature vectors into feature vectors of s
 
 There are three distinct cases: static particles, dynamic particles and the particle at the center of the convolution.
 
-1. In the first case, convolutions are performed at all positions of dynamic particles, but only the feature vectors of static particles are used. 
-    $$ CConv(dynamic\ paticle\ locations, static\ particles, G, R) $$
+1. In the first case, convolutions are performed at all positions of dynamic particles $$ D $$, but only the feature vectors of static particles $$ S $$ are used. 
+
+    $$ CConv(D, S, G, R) $$
 
 
-2. In the second case, convolutions are performed at all positions $$ x_i $$ of dynamic particles, but only the feature vectors of dynamic particles, except the feature vector for particle i, are considered.
-    $$ CConv(dynamic\ particle\ locations, dynamic\ particles \backslash\ \{particle\ at\ convolution\ center\}, G, R) $$. 
+2. In the second case, convolutions are performed at all positions $$ x_i $$ of dynamic particles $$ D $$, 
+but only the feature vectors of dynamic particles, except the feature vector for particle i at the convolution center, are considered.
+
+    $$ CConv(D, D \backslash \{p_i\}, G, R) $$ 
 
 3. The last case applies a bunch of fully connected layers to each dynamic particle's feature vector.
 
@@ -292,6 +295,11 @@ So, just replacing the convolution operation seems a bit unfair but I don't blam
 
 Another thing I'd like to see at some point is how well the formulation does in other point cloud benchmarks (classification, segmentation, ...) and other data sources (3D scans).
 Having such fine control over radius and resolution could prove crucial to speed up learning or to process more heterogeneous datasets.
+
+One question, that pops up comparing it with traditional convolutions, is how to translate the concept of strides.
+A stride defines the movement of a kernel.
+Instead of applying it to every grid point, one can skip every other column and row, hence reducing the resolution. 
+This is a very natural way of reducing a large set of feature vectors down to a single one, describing the entire grid.
 
 
 ## Results: Simulating fluids
